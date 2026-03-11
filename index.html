@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MPD Toolkit</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  [data-theme="light"]{--bg:#f0f5f1;--surf:#ffffff;--surf2:#e6f0e8;--bdr:#bdd4c2;--acc:#1a8c35;--acc2:#d42b2b;--acc3:#c47a00;--acc4:#0e7a63;--txt:#172a1c;--muted:#537a5c;--lbl:#2a5e38;--grid:rgba(26,140,53,0.05);--inp:#ffffff;--shadow:rgba(0,0,0,0.07);--glow:rgba(26,140,53,0.12);}
+  [data-theme="dark"]{--bg:#080e0a;--surf:#0f1a12;--surf2:#142018;--bdr:#1e3325;--acc:#4dff6e;--acc2:#ff4d5e;--acc3:#ffd740;--acc4:#5de0b3;--txt:#d6eed9;--muted:#4a7055;--lbl:#7ab88a;--grid:rgba(77,255,110,0.035);--inp:#080e0a;--shadow:rgba(0,0,0,0.55);--glow:rgba(77,255,110,0.18);}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased;}
+  body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:36px 36px;}
+  .wrap{max-width:960px;margin:0 auto;padding:28px 16px 80px;position:relative;z-index:1;}
+
+  header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-bottom:22px;margin-bottom:24px;border-bottom:1px solid var(--bdr);}
+  .header-left{flex:1;min-width:0;}
+  .eyebrow{font-size:10px;letter-spacing:.32em;color:var(--acc);text-transform:uppercase;margin-bottom:4px;}
+  h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(46px,12vw,82px);line-height:.88;letter-spacing:.02em;color:var(--txt);}
+  h1 span{color:var(--acc);display:block;}
+  .hdr-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .theme-toggle{background:var(--surf);border:1px solid var(--bdr);border-radius:50px;padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:'Barlow',sans-serif;font-size:11px;font-weight:400;letter-spacing:.1em;color:var(--muted);transition:all .2s;white-space:nowrap;}
+  .theme-toggle:hover{border-color:var(--acc);color:var(--acc);}
+  .db-pill{background:var(--surf2);border:1px solid var(--bdr);border-radius:50px;padding:6px 14px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.08em;color:var(--muted);white-space:nowrap;cursor:pointer;transition:all .2s;}
+  .db-pill.loaded{border-color:var(--acc);color:var(--acc);background:rgba(26,140,53,.07);}
+  .db-pill:hover{border-color:var(--acc);color:var(--acc);}
+
+  .tab-bar{display:flex;border:1px solid var(--bdr);border-radius:9px;overflow:hidden;margin-bottom:22px;background:var(--surf);}
+  .tab-btn{flex:1;padding:11px 8px;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.1em;background:transparent;border:none;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center;}
+  .tab-btn:not(:last-child){border-right:1px solid var(--bdr);}
+  .tab-btn.active{background:var(--acc);color:var(--bg);}
+  .tab-btn:hover:not(.active){background:var(--surf2);color:var(--acc);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;animation:fadeUp .25s ease;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+  .sdiv{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .sdiv::after{content:'';flex:1;height:1px;background:var(--bdr);}
+
+  .card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 2px 12px var(--shadow);}
+  .card-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--surf2);border-bottom:1px solid var(--bdr);border-radius:10px 10px 0 0;margin:-20px -20px 18px;flex-wrap:wrap;gap:8px;}
+  .card-title{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.15em;color:var(--lbl);}
+
+  .fg{margin-bottom:12px;}
+  .fg:last-child{margin-bottom:0;}
+  .fg label{display:block;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--lbl);margin-bottom:5px;font-weight:400;}
+  textarea,input[type="text"],input[type="url"],input[type="search"]{width:100%;background:var(--inp);border:1px solid var(--bdr);border-radius:7px;color:var(--txt);font-family:'Barlow',monospace;font-size:12px;font-weight:300;padding:10px 13px;outline:none;transition:border-color .2s,box-shadow .2s;line-height:1.55;}
+  textarea{resize:vertical;word-break:break-all;}
+  textarea:focus,input:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--glow);}
+  textarea::placeholder,input::placeholder{color:var(--muted);opacity:.5;font-family:'Barlow',sans-serif;}
+
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+  .btn{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.1em;padding:11px 26px;border-radius:7px;border:none;cursor:pointer;transition:all .15s;min-height:44px;}
+  .btn:active{opacity:.75;transform:scale(.98);}
+  .btn-primary{background:transparent;border:2px solid var(--acc);color:var(--acc);flex:1;}
+  .btn-primary:hover{background:var(--acc);color:var(--bg);box-shadow:0 6px 20px var(--glow);}
+  .btn-danger{background:transparent;border:1px solid var(--acc2);color:var(--acc2);}
+  .btn-danger:hover{background:var(--acc2);color:#fff;}
+  .btn-secondary{background:transparent;border:1px solid var(--bdr);color:var(--muted);}
+  .btn-secondary:hover{border-color:var(--acc2);color:var(--acc2);}
+  .btn-sm{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.08em;padding:5px 13px;border-radius:5px;border:1px solid var(--bdr);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;}
+  .btn-sm:hover{border-color:var(--acc);color:var(--acc);}
+  .btn-sm.ok{border-color:var(--acc);color:var(--acc);background:rgba(26,140,53,.07);}
+  .btn-sm.danger{border-color:var(--acc2);color:var(--acc2);}
+  .btn-sm.danger:hover{background:rgba(212,43,43,.08);}
+
+  .status-wrap{margin-top:12px;}
+  .status-bar{display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:7px;font-size:12px;margin-bottom:6px;}
+  .status-bar:last-child{margin-bottom:0;}
+  .s-ok{background:rgba(26,140,53,.07);border:1px solid rgba(26,140,53,.2);color:var(--acc);}
+  .s-err{background:rgba(212,43,43,.06);border:1px solid rgba(212,43,43,.2);color:var(--acc2);}
+  .s-load{background:rgba(196,122,0,.06);border:1px solid rgba(196,122,0,.2);color:var(--acc3);}
+  .s-info{background:rgba(14,122,99,.06);border:1px solid rgba(14,122,99,.2);color:var(--acc4);}
+  .spin{display:inline-block;animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+  .errmsg{color:var(--acc2);font-size:12px;margin-top:10px;padding:10px 13px;background:rgba(212,43,43,.06);border:1px solid rgba(212,43,43,.2);border-radius:7px;display:none;line-height:1.5;}
+  .errmsg.show{display:block;}
+  .out-block{display:none;}
+  .out-block.show{display:block;animation:fadeUp .25s ease;}
+
+  .url-box{background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;padding:11px 13px;font-family:'Barlow',monospace;font-size:11px;line-height:1.6;color:var(--acc);word-break:break-all;cursor:pointer;transition:border-color .2s;margin-bottom:12px;}
+  .url-box:hover{border-color:var(--acc);}
+  .diff-item{display:flex;gap:10px;align-items:flex-start;padding:6px 11px;border-radius:6px;margin-bottom:4px;font-family:'Barlow',monospace;font-size:11px;line-height:1.5;}
+  .diff-rem{background:rgba(212,43,43,.06);border-left:2px solid var(--acc2);}
+  .diff-chg{background:rgba(26,140,53,.06);border-left:2px solid var(--acc);}
+
+  .pssh-card{background:var(--surf2);border:1px solid var(--bdr);border-left:3px solid var(--acc);border-radius:9px;padding:13px;margin-bottom:10px;}
+  .pssh-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;flex-wrap:wrap;gap:6px;}
+  .pssh-badge{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.1em;padding:3px 12px;border-radius:50px;border:1px solid var(--acc);background:rgba(26,140,53,.08);color:var(--acc);}
+  .pssh-val{background:var(--inp);border:1px solid var(--bdr);border-radius:6px;padding:9px 11px;font-family:'Barlow',monospace;font-size:11px;line-height:1.7;color:var(--txt);word-break:break-all;cursor:pointer;transition:border-color .2s;}
+  .pssh-val:hover{border-color:var(--acc);}
+  .pssh-meta{display:flex;gap:16px;flex-wrap:wrap;margin-top:7px;}
+  .pssh-mi{font-size:10px;color:var(--muted);}
+  .pssh-mi span{color:var(--txt);font-weight:600;}
+
+  .kid-section{margin-top:20px;}
+  .kid-sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
+  .count-pill{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.08em;padding:3px 11px;border-radius:50px;background:var(--surf2);border:1px solid var(--bdr);color:var(--muted);}
+  .tbl-wrap{border:1px solid var(--bdr);border-radius:9px;overflow:hidden;overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;min-width:520px;}
+  table th{font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;padding:7px 11px;text-align:left;border-bottom:1px solid var(--bdr);background:var(--surf2);white-space:nowrap;}
+  table td{font-family:'Barlow',monospace;font-size:12px;padding:9px 11px;border-bottom:1px solid var(--bdr);vertical-align:middle;}
+  table tr:last-child td{border-bottom:none;}
+  table tr:hover td{background:var(--surf2);}
+  .kid-uuid{color:var(--lbl);font-weight:600;}
+  .kid-key{color:var(--txt);}
+  .kid-key.zeros{color:var(--muted);opacity:.55;}
+  .src-pill{font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:.06em;padding:2px 8px;border-radius:50px;border:1px solid;white-space:nowrap;}
+  .sp-cmd{border-color:var(--acc4);color:var(--acc4);background:rgba(14,122,99,.07);}
+  .sp-db{border-color:var(--acc);color:var(--acc);background:rgba(26,140,53,.07);}
+  .sp-both{border-color:#7c5fb5;color:#7c5fb5;background:rgba(124,95,181,.07);}
+  .sp-miss{border-color:var(--muted);color:var(--muted);background:transparent;}
+
+  .cmd-out{background:var(--surf2);border:1px solid var(--bdr);border-radius:9px;padding:14px;font-family:'Barlow',monospace;font-size:11.5px;line-height:1.9;color:var(--txt);white-space:pre-wrap;word-break:break-all;margin-top:4px;max-height:440px;overflow-y:auto;}
+  .cmd-url{color:var(--acc);}
+  .cmd-key-db{color:var(--lbl);font-weight:600;}
+  .cmd-key-cmd{color:var(--acc4);font-weight:600;}
+  .cmd-key-both{color:#7c5fb5;font-weight:600;}
+  .cmd-key-zero{color:var(--muted);opacity:.6;}
+  .cmd-flag{color:var(--acc3);}
+
+  /* KEY DATABASE TAB */
+  .db-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .db-stat{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:10px 16px;flex:1;min-width:100px;text-align:center;}
+  .db-stat-num{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;color:var(--acc);line-height:1;}
+  .db-stat-lbl{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
+
+  .drop-zone{border:2px dashed var(--bdr);border-radius:9px;padding:1.8rem 1rem;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--surf2);}
+  .drop-zone:hover,.drop-zone.drag-over{border-color:var(--acc);background:rgba(26,140,53,.04);}
+  .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
+  .drop-icon{font-size:1.6rem;margin-bottom:.4rem;}
+  .drop-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.08em;color:var(--txt);margin-bottom:3px;}
+  .drop-sub{font-size:11px;color:var(--muted);}
+  .drop-zone.has-file{border-color:var(--acc);border-style:solid;}
+
+  .db-search-wrap{position:relative;margin-bottom:12px;}
+  .db-search-wrap input{padding-left:32px;}
+  .db-search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none;}
+
+  .db-tbl-wrap{border:1px solid var(--bdr);border-radius:9px;overflow:hidden;max-height:400px;overflow-y:auto;}
+  .db-empty{text-align:center;padding:32px;color:var(--muted);font-size:13px;}
+  .db-empty-icon{font-size:2rem;margin-bottom:8px;opacity:.5;}
+
+  .import-result{margin-top:10px;padding:10px 13px;border-radius:7px;font-size:12px;display:none;line-height:1.6;}
+  .import-result.show{display:block;}
+  .import-ok{background:rgba(26,140,53,.07);border:1px solid rgba(26,140,53,.2);color:var(--acc);}
+  .import-warn{background:rgba(196,122,0,.06);border:1px solid rgba(196,122,0,.2);color:var(--acc3);}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--txt);color:var(--bg);font-family:'Barlow',sans-serif;font-size:13px;padding:9px 20px;border-radius:50px;z-index:200;transition:transform .3s,opacity .3s;opacity:0;pointer-events:none;white-space:nowrap;}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+  /* PSSH standalone */
+  .pssh-standalone-cards{margin-bottom:0;}
+
+  /* FORMAT TOGGLE */
+  .fmt-toggle{display:flex;align-items:center;gap:4px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:4px 10px;cursor:pointer;transition:border-color .2s;user-select:none;}
+  .fmt-toggle:hover{border-color:var(--acc);}
+  .fmt-opt{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.1em;color:var(--muted);transition:color .15s;}
+  .fmt-opt.active{color:var(--acc);font-weight:600;}
+  .fmt-sep{color:var(--bdr);font-size:11px;}
+
+  @media(max-width:520px){
+    .wrap{padding:16px 12px 56px;}
+    h1{font-size:clamp(44px,13vw,64px);}
+    .theme-toggle span:not(.ti){display:none;}
+    table{min-width:400px;}
+    .cmd-out{font-size:10px;}
+    .hdr-right{gap:6px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="header-left">
+    <div class="eyebrow">DRM Analysis Tool</div>
+    <h1>MPD<span>Toolkit</span></h1>
+  </div>
+  <div class="hdr-right">
+    <div class="db-pill" id="dbPill" onclick="switchTab('keys')" title="Key Database">🔐 <span id="dbPillCount">0 keys</span></div>
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <span class="ti" id="t-icon">🌙</span>
+      <span id="t-lbl">Dark</span>
+    </button>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('cmd')">⚡ Command</button>
+  <button class="tab-btn" onclick="switchTab('converter')">🔗 Converter</button>
+  <button class="tab-btn" onclick="switchTab('pssh')">🔑 PSSH</button>
+  <button class="tab-btn" onclick="switchTab('keys')">🗄 Key DB</button>
+</div>
+
+<!-- ══ TAB: COMMAND PARSER ══ -->
+<div id="tab-cmd" class="tab-panel active">
+  <div class="sdiv">Paste N_m3u8DL-RE Command</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Input Command</span>
+      <span style="font-size:10px;color:var(--muted)">Auto-converts URL · fetches PSSH · matches keys from DB + command</span>
+    </div>
+    <div class="fg">
+      <textarea id="cmdInput" rows="7" placeholder='Paste your full N_m3u8DL-RE command:&#10;N_m3u8DL-RE "https://...dash.mpd?manifest-params=..." -H "..." --key kid:key -M format=mkv'></textarea>
+    </div>
+    <div id="cmdErr" class="errmsg"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="processCommand()">⚡ Process</button>
+      <button class="btn btn-secondary" onclick="clearCmd()">Clear</button>
+    </div>
+    <div id="cmdStatus" class="status-wrap"></div>
+  </div>
+
+  <div class="out-block" id="cmdOut">
+    <div class="sdiv">Converted URL</div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">main.mpd URL</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-sm" id="copyUrlBtn" onclick="copyEl('convUrl','copyUrlBtn')">Copy</button>
+          <button class="btn-sm" onclick="openConvUrl()">Open ↗</button>
+        </div>
+      </div>
+      <div class="url-box" id="convUrl" onclick="copyEl('convUrl','copyUrlBtn')"></div>
+      <div id="diffItems"></div>
+    </div>
+
+    <div class="sdiv">Widevine PSSH</div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">PSSH + Key IDs</span>
+        <span id="psshMeta" style="font-size:10px;color:var(--muted)"></span>
+      </div>
+      <div id="psshCards"></div>
+      <div class="kid-section">
+        <div class="kid-sec-head">
+          <div class="sdiv" style="margin-bottom:0;flex:1">Key ID → Key mapping</div>
+          <div style="display:flex;gap:6px;margin-left:12px;">
+            <button class="btn-sm" onclick="copyAllKidKeys()">Copy All</button>
+            <span class="count-pill" id="kidCount"></span>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Key ID</th><th>Key</th><th>Source</th><th></th></tr></thead>
+            <tbody id="kidTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="sdiv">Final Command</div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Updated N_m3u8DL-RE</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div class="fmt-toggle" id="fmtToggle" onclick="toggleFormat()" title="Toggle output format">
+            <span class="fmt-opt" id="fmtMkv">MKV</span>
+            <span class="fmt-sep">/</span>
+            <span class="fmt-opt" id="fmtMp4">MP4</span>
+          </div>
+          <button class="btn-sm" id="copyCmdBtn" onclick="copyFinalCmd()">Copy Command</button>
+        </div>
+      </div>
+      <div class="cmd-out" id="finalCmd"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB: URL CONVERTER ══ -->
+<div id="tab-converter" class="tab-panel">
+  <div class="sdiv">Convert MPD URL</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Original MPD URL</span>
+      <span style="font-size:10px;color:var(--muted)">Ctrl+Enter</span>
+    </div>
+    <div class="fg"><textarea id="inputUrl" rows="4" placeholder="Paste the full dash.mpd?manifest-params=... URL here..."></textarea></div>
+    <div id="convErr" class="errmsg"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="convertStandalone()">Convert</button>
+      <button class="btn btn-secondary" onclick="clearConv()">Clear</button>
+    </div>
+  </div>
+  <div class="out-block" id="convSOut">
+    <div class="sdiv">Result</div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Converted URL</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-sm" id="copyUrlBtn2" onclick="copyEl('convSUrl','copyUrlBtn2')">Copy</button>
+          <button class="btn-sm" onclick="window.open(document.getElementById('convSUrl').textContent,'_blank')">Open ↗</button>
+        </div>
+      </div>
+      <div class="url-box" id="convSUrl" onclick="copyEl('convSUrl','copyUrlBtn2')"></div>
+      <div class="sdiv" style="margin-bottom:10px;">Changes</div>
+      <div id="diffItemsS"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB: PSSH EXTRACTOR ══ -->
+<div id="tab-pssh" class="tab-panel">
+  <div class="sdiv">Method 1 — Fetch from URL</div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">MPD URL</span><span style="font-size:10px;color:var(--muted)">Enter to fetch</span></div>
+    <div class="fg"><input type="url" id="fetchUrl" placeholder="https://...main.mpd  or  ...dash.mpd?manifest-params=..."></div>
+    <div id="fetchErr" class="errmsg"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="fetchAndExtract()">Fetch + Extract</button>
+      <button class="btn btn-secondary" onclick="clearFetch()">Clear</button>
+    </div>
+    <div id="fetchStatus" class="status-wrap"></div>
+  </div>
+
+  <div class="sdiv">Method 2 — Upload File</div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">Upload .mpd File</span></div>
+    <div class="drop-zone" id="dropZonePssh">
+      <input type="file" id="fileInputPssh" accept=".mpd,.xml" onchange="handleFilePssh(this.files[0])">
+      <div class="drop-icon">📄</div>
+      <div class="drop-title">Drop .mpd file here</div>
+      <div class="drop-sub">or click to browse</div>
+    </div>
+  </div>
+
+  <div class="sdiv">Method 3 — Paste XML</div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">Paste MPD XML</span></div>
+    <div class="fg"><textarea id="psshInput" rows="5" placeholder="Paste raw MPD XML content here..."></textarea></div>
+    <div id="psshErr" class="errmsg"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="extractFromText()">Extract PSSH</button>
+      <button class="btn btn-secondary" onclick="clearPaste()">Clear</button>
+    </div>
+  </div>
+
+  <div class="out-block" id="psshSOut">
+    <div class="sdiv">Widevine PSSH</div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Extracted PSSH</span>
+        <span id="psshSMeta" style="font-size:10px;color:var(--muted)"></span>
+      </div>
+      <div id="psshSCards" class="pssh-standalone-cards"></div>
+      <div class="kid-section">
+        <div class="kid-sec-head">
+          <div class="sdiv" style="margin-bottom:0;flex:1">Key IDs from PSSH</div>
+          <div style="display:flex;gap:6px;margin-left:12px;">
+            <button class="btn-sm" onclick="copyAllKidsS()">Copy All</button>
+            <span class="count-pill" id="kidCountS"></span>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Key ID (UUID)</th><th>Hex</th><th>Source</th><th></th></tr></thead>
+            <tbody id="kidTableS"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB: KEY DATABASE ══ -->
+<div id="tab-keys" class="tab-panel">
+
+  <div class="db-stats">
+    <div class="db-stat"><div class="db-stat-num" id="dbTotalKeys">0</div><div class="db-stat-lbl">Total Keys</div></div>
+    <div class="db-stat"><div class="db-stat-num" id="dbTotalSets">0</div><div class="db-stat-lbl">Key Sets</div></div>
+    <div class="db-stat"><div class="db-stat-num" id="dbLastUpdate">—</div><div class="db-stat-lbl">Last Import</div></div>
+  </div>
+
+  <div class="sdiv">Import Keys</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Upload Key File (.txt)</span>
+      <span style="font-size:10px;color:var(--muted)">Supports --key kid:key format · stored locally in browser only</span>
+    </div>
+    <div class="drop-zone" id="dropZoneKeys">
+      <input type="file" id="fileInputKeys" accept=".txt,.log,text/plain" onchange="importKeyFile(this.files[0])">
+      <div class="drop-icon">🗝️</div>
+      <div class="drop-title">Drop your keys .txt file here</div>
+      <div class="drop-sub">or click to browse · file never leaves your browser</div>
+    </div>
+    <div id="importResult" class="import-result"></div>
+
+    <div style="margin-top:16px;">
+      <div class="sdiv" style="margin-bottom:10px;">Or paste keys manually</div>
+      <div class="fg"><textarea id="pasteKeys" rows="5" placeholder="--key kid1:key1&#10;--key kid2:key2&#10;&#10;Or just:&#10;kid1:key1&#10;kid2:key2"></textarea></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="importFromPaste()">Add Keys</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('pasteKeys').value=''">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sdiv">Stored Keys</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Key Database</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn-sm" onclick="exportKeys()">Export .txt</button>
+        <button class="btn-sm danger" onclick="confirmClearDB()">Clear All</button>
+      </div>
+    </div>
+    <div class="db-search-wrap">
+      <span class="db-search-icon">🔍</span>
+      <input type="search" id="dbSearch" placeholder="Search by KID or key..." oninput="renderDBTable()">
+    </div>
+    <div class="db-tbl-wrap" id="dbTableWrap">
+      <div class="db-empty"><div class="db-empty-icon">🗄️</div>No keys stored yet.<br>Import a .txt file or paste keys above.</div>
+    </div>
+  </div>
+
+</div>
+<!-- END TABS -->
+
+</div><!-- .wrap -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════
+const WIDEVINE_UUID = 'edef8ba9-79d6-4ace-a3c8-27dcd51d21ed';
+const ZEROS32 = '00000000000000000000000000000000';
+const LS_KEY = 'mpd_toolkit_keys_v1';
+const CORS_PROXIES = [
+  u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u=>`https://thingproxy.freeboard.io/fetch/${u}`,
+];
+
+// ═══════════════════════════════════════════════════════
+// KEY DATABASE  (localStorage)
+// ═══════════════════════════════════════════════════════
+// Structure: { kid_hex: key_hex }  — all lowercase, no dashes
+let keyDB = {};
+
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    keyDB = raw ? JSON.parse(raw) : {};
+  } catch(e) { keyDB = {}; }
+  updateDBUI();
+}
+
+function saveDB() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(keyDB)); } catch(e) {}
+  updateDBUI();
+}
+
+function updateDBUI() {
+  const count = Object.keys(keyDB).length;
+  document.getElementById('dbTotalKeys').textContent = count;
+  // count "sets" = groups of keys with same 010X prefix pattern
+  const sets = new Set(Object.keys(keyDB).map(k => k.slice(0,4)));
+  document.getElementById('dbTotalSets').textContent = sets.size;
+  const pill = document.getElementById('dbPill');
+  const pillCount = document.getElementById('dbPillCount');
+  pillCount.textContent = count + ' key' + (count!==1?'s':'');
+  pill.classList.toggle('loaded', count > 0);
+}
+
+function lookupKey(kidHex) {
+  // kidHex = 32-char hex, no dashes
+  return keyDB[kidHex.toLowerCase()] || null;
+}
+
+function mergeKeys(newKeys) {
+  // newKeys = { kid: key }
+  let added = 0, updated = 0;
+  for (const [kid, key] of Object.entries(newKeys)) {
+    const k = kid.toLowerCase();
+    if (!keyDB[k]) added++;
+    else if (keyDB[k] !== key.toLowerCase()) updated++;
+    keyDB[k] = key.toLowerCase();
+  }
+  saveDB();
+  return { added, updated };
+}
+
+// Parse any text containing --key kid:key or just kid:key lines
+function parseKeyText(text) {
+  const result = {};
+  const re = /(?:--key\s+)?([0-9a-fA-F]{32}):([0-9a-fA-F]{32})/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    result[m[1].toLowerCase()] = m[2].toLowerCase();
+  }
+  return result;
+}
+
+function importKeyFile(file) {
+  if (!file) return;
+  const dz = document.getElementById('dropZoneKeys');
+  dz.classList.add('has-file');
+  dz.querySelector('.drop-title').textContent = file.name;
+  dz.querySelector('.drop-sub').textContent = (file.size/1024).toFixed(1)+' KB · parsed locally';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const parsed = parseKeyText(e.target.result);
+    const count = Object.keys(parsed).length;
+    if (!count) {
+      showImportResult('warn','No valid --key lines found in file.');
+      return;
+    }
+    const { added, updated } = mergeKeys(parsed);
+    const now = new Date();
+    document.getElementById('dbLastUpdate').textContent = now.toLocaleDateString();
+    showImportResult('ok', `✓ Imported ${count} keys from ${file.name} — ${added} new, ${updated} updated`);
+    renderDBTable();
+    toast(`✓ ${count} keys imported`);
+  };
+  reader.readAsText(file);
+}
+
+function importFromPaste() {
+  const text = document.getElementById('pasteKeys').value;
+  const parsed = parseKeyText(text);
+  const count = Object.keys(parsed).length;
+  if (!count) { toast('No valid kid:key pairs found'); return; }
+  const { added, updated } = mergeKeys(parsed);
+  const now = new Date();
+  document.getElementById('dbLastUpdate').textContent = now.toLocaleDateString();
+  document.getElementById('pasteKeys').value = '';
+  showImportResult('ok', `✓ ${count} keys parsed — ${added} new, ${updated} updated`);
+  renderDBTable();
+  toast(`✓ ${added} new keys added`);
+}
+
+function showImportResult(type, msg) {
+  const el = document.getElementById('importResult');
+  el.textContent = msg;
+  el.className = 'import-result show ' + (type==='ok'?'import-ok':'import-warn');
+  setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+function renderDBTable() {
+  const query = (document.getElementById('dbSearch').value||'').toLowerCase().trim();
+  const entries = Object.entries(keyDB).filter(([k,v]) =>
+    !query || k.includes(query) || v.includes(query) || hexToUUID(k).includes(query)
+  );
+
+  const wrap = document.getElementById('dbTableWrap');
+  if (!entries.length) {
+    wrap.innerHTML = `<div class="db-empty"><div class="db-empty-icon">${query?'🔍':'🗄️'}</div>${query?'No keys match your search.':'No keys stored yet.<br>Import a .txt file or paste keys above.'}</div>`;
+    return;
+  }
+
+  let html = `<table><thead><tr><th>#</th><th>Key ID (UUID)</th><th>Key</th><th></th></tr></thead><tbody>`;
+  entries.forEach(([kid,key], i) => {
+    const uuid = hexToUUID(kid);
+    html += `<tr>
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td class="kid-uuid">${uuid}</td>
+      <td class="kid-key">${key}</td>
+      <td style="display:flex;gap:5px;">
+        <button class="btn-sm" onclick="copyText('${kid}:${key}',this)" title="Copy kid:key">Copy</button>
+        <button class="btn-sm danger" onclick="deleteKey('${kid}')" title="Delete">✕</button>
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function deleteKey(kid) {
+  delete keyDB[kid];
+  saveDB();
+  renderDBTable();
+  toast('Key removed');
+}
+
+function confirmClearDB() {
+  if (confirm(`Clear all ${Object.keys(keyDB).length} stored keys? This cannot be undone.`)) {
+    keyDB = {};
+    saveDB();
+    renderDBTable();
+    toast('Key database cleared');
+    document.getElementById('dropZoneKeys').classList.remove('has-file');
+    document.getElementById('dropZoneKeys').querySelector('.drop-title').textContent='Drop your keys .txt file here';
+    document.getElementById('dropZoneKeys').querySelector('.drop-sub').textContent='or click to browse · file never leaves your browser';
+  }
+}
+
+function exportKeys() {
+  const lines = Object.entries(keyDB).map(([k,v]) => `--key ${k}:${v}`);
+  if (!lines.length) { toast('No keys to export'); return; }
+  const blob = new Blob([lines.join('\n')], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'keys-export.txt';
+  a.click();
+  toast(`✓ Exported ${lines.length} keys`);
+}
+
+// ═══════════════════════════════════════════════════════
+// THEME & TABS
+// ═══════════════════════════════════════════════════════
+function toggleTheme() {
+  const html = document.documentElement;
+  const dark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', dark ? 'light' : 'dark');
+  document.getElementById('t-icon').textContent = dark ? '🌙' : '☀️';
+  document.getElementById('t-lbl').textContent  = dark ? 'Dark' : 'Light';
+}
+
+function switchTab(name) {
+  const names = ['cmd','converter','pssh','keys'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', names[i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name==='keys') renderDBTable();
+}
+
+// ═══════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2200);
+}
+
+// ═══════════════════════════════════════════════════════
+// COMMAND PARSER
+// ═══════════════════════════════════════════════════════
+async function processCommand() {
+  const raw = document.getElementById('cmdInput').value.trim();
+  hide('cmdErr'); hide('cmdOut'); clearStatus('cmdStatus');
+  if (!raw) { showErr('cmdErr','Paste a command first.'); return; }
+
+  // Extract URL
+  const urlMatch = raw.match(/N_m3u8DL-RE\s+"([^"]+)"/i) || raw.match(/N_m3u8DL-RE\s+'([^']+)'/i);
+  if (!urlMatch) { showErr('cmdErr','Could not find URL. Make sure it starts with: N_m3u8DL-RE "https://..."'); return; }
+  const originalUrl = urlMatch[1];
+
+  // Extract --key pairs from command
+  const cmdKeys = {};
+  const keyRe = /--key\s+([0-9a-fA-F]{32}):([0-9a-fA-F]{32})/g;
+  let km;
+  while ((km = keyRe.exec(raw)) !== null) cmdKeys[km[1].toLowerCase()] = km[2].toLowerCase();
+
+  // Extract other flags
+  const otherFlags = extractOtherFlags(raw);
+  _lastOtherFlags = otherFlags;
+
+  // Convert URL
+  addStatus('cmdStatus','load','⏳ Converting URL...');
+  let convResult;
+  try { convResult = buildUrl(originalUrl); }
+  catch(e) { showErr('cmdErr','URL error: '+e.message); clearStatus('cmdStatus'); return; }
+
+  const convertedUrl = convResult.url;
+  document.getElementById('convUrl').textContent = convertedUrl;
+  renderDiff(convResult.changes, 'diffItems');
+  addStatus('cmdStatus','ok','✓ URL converted → main.mpd');
+
+  // Fetch MPD
+  setStatus('cmdStatus','load','⏳ Fetching converted MPD...');
+  const xml = await fetchMPD(convertedUrl);
+
+  if (!xml) {
+    addStatus('cmdStatus','err','⚠ Could not fetch MPD — showing available keys only');
+    buildOutput(convertedUrl, cmdKeys, {}, otherFlags);
+    show('cmdOut'); scrollToFinal(); return;
+  }
+  addStatus('cmdStatus','ok','✓ MPD fetched');
+
+  // Parse PSSH
+  setStatus('cmdStatus','load','⏳ Extracting KIDs from PSSH...');
+  const parsed = parseMPDForKids(xml);
+
+  if (!parsed.psshList.length) {
+    addStatus('cmdStatus','err','⚠ No Widevine PSSH found in MPD');
+    buildOutput(convertedUrl, cmdKeys, {}, otherFlags);
+    show('cmdOut'); scrollToFinal(); return;
+  }
+
+  addStatus('cmdStatus','ok',`✓ ${parsed.psshKids.size} KID${parsed.psshKids.size!==1?'s':''} found in PSSH`);
+
+  // Render PSSH
+  renderPSSHCards(parsed.psshList, parsed.psshKids, 'psshCards', 'psshMeta');
+
+  // Merge all KIDs: PSSH kids + any extra from command
+  const allKids = new Set([...parsed.psshKids, ...Object.keys(cmdKeys)]);
+
+  buildOutput(convertedUrl, cmdKeys, Object.fromEntries([...allKids].map(k=>[k,null])), otherFlags, parsed.psshKids);
+  show('cmdOut'); scrollToFinal();
+  clearStatus('cmdStatus');
+  addStatus('cmdStatus','ok','✓ Done — command ready below');
+}
+
+function buildOutput(convertedUrl, cmdKeys, psshKidMap, otherFlags, psshKids=new Set()) {
+  // For each KID, determine key source priority: cmdKeys > keyDB > zeros
+  const allKids = new Set([...Object.keys(psshKidMap), ...Object.keys(cmdKeys)]);
+  const kidRows = [];
+
+  allKids.forEach(kid => {
+    const fromCmd = cmdKeys[kid] || null;
+    const fromDB  = lookupKey(kid);
+    const inPssh  = psshKids.has(kid) || psshKidMap.hasOwnProperty(kid);
+
+    let key, source;
+    if (fromCmd && fromDB && fromCmd === fromDB) { key=fromCmd; source='both'; }
+    else if (fromCmd && fromDB && fromCmd !== fromDB) { key=fromCmd; source='cmd'; } // prefer cmd
+    else if (fromCmd) { key=fromCmd; source='cmd'; }
+    else if (fromDB)  { key=fromDB;  source='db'; }
+    else              { key=null;    source='miss'; }
+
+    kidRows.push({ kid, key, source, inPssh });
+  });
+
+  // Store for copy-all
+  _cmdKidRows = kidRows;
+
+  // Render KID table
+  document.getElementById('kidCount').textContent = kidRows.length + ' KID' + (kidRows.length!==1?'s':'');
+  document.getElementById('kidTableBody').innerHTML = kidRows.map((r,i) => {
+    const uuid = hexToUUID(r.kid);
+    const keyDisplay = r.key || ZEROS32;
+    const isZero = !r.key;
+    const srcLabels = {cmd:'Command',db:'Key DB',both:'CMD+DB',miss:'Not found'};
+    const srcCls   = {cmd:'sp-cmd', db:'sp-db', both:'sp-both', miss:'sp-miss'};
+    return `<tr>
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td class="kid-uuid">${uuid}</td>
+      <td class="kid-key${isZero?' zeros':''}">${keyDisplay}</td>
+      <td><span class="src-pill ${srcCls[r.source]}">${srcLabels[r.source]}</span></td>
+      <td><button class="btn-sm" onclick="copyText('${r.kid}:${keyDisplay}',this)">Copy</button></td>
+    </tr>`;
+  }).join('');
+
+  // Build final command
+  buildFinalCmd(convertedUrl, kidRows, otherFlags);
+}
+
+let _cmdKidRows = [];
+let _finalCmdText = '';
+
+function buildFinalCmd(url, kidRows, otherFlags) {
+  const fmt = _userFormat;
+  const keyArgs = kidRows.map(r => `--key ${r.kid}:${r.key||ZEROS32}`);
+  _finalCmdText = `N_m3u8DL-RE "${url}" ${otherFlags} -M format=${fmt} -mt ${keyArgs.join(' ')}`.replace(/\s+/g,' ').trim();
+
+  // Syntax highlighted
+  const flagsHtml = otherFlags
+    .replace(/(-H\s+"[^"]*")/g,'<span class="cmd-flag">$1</span>')
+    .replace(/(--[a-zA-Z][\w-]+=\S+)/g,'<span class="cmd-flag">$1</span>')
+    .replace(/(-[mMsS]\s+\S+)/g,'<span class="cmd-flag">$1</span>');
+
+  const srcCls = {cmd:'cmd-key-cmd',db:'cmd-key-db',both:'cmd-key-both',miss:'cmd-key-zero'};
+  const keysHtml = kidRows.map(r =>
+    `<span class="${srcCls[r.source]}">--key ${r.kid}:${r.key||ZEROS32}</span>`
+  ).join(' \\\n  ');
+
+  document.getElementById('finalCmd').innerHTML =
+    `N_m3u8DL-RE "<span class="cmd-url">${escHtml(url)}</span>" ${flagsHtml} <span class="cmd-flag">-M format=${fmt} -mt</span> \\\n  ${keysHtml}`;
+}
+
+function extractOtherFlags(raw) {
+  let s = raw;
+  s = s.replace(/^N_m3u8DL-RE\s+/i,'');
+  s = s.replace(/"[^"]*"/,'');                                      // remove URL
+  s = s.replace(/--key\s+[0-9a-fA-F]{32}:[0-9a-fA-F]{32}/g,'');   // remove --key lines
+  s = s.replace(/-M\s+format=\S+/g,'');                            // remove -M format=...
+  s = s.replace(/\s-mt\b/g,'').replace(/^-mt\b/,'');               // remove -mt
+  s = s.replace(/\s-ma\b/g,'').replace(/^-ma\b/,'');               // remove -ma
+  return s.replace(/\s+/g,' ').trim();
+}
+
+function copyAllKidKeys() {
+  const text = _cmdKidRows.map(r=>`${r.kid}:${r.key||ZEROS32}`).join('\n');
+  navigator.clipboard.writeText(text).then(()=>toast('✓ All KID:key pairs copied'));
+}
+
+function copyFinalCmd() {
+  navigator.clipboard.writeText(_finalCmdText).then(()=>{
+    const b=document.getElementById('copyCmdBtn');
+    b.textContent='✓ Copied'; b.classList.add('ok');
+    setTimeout(()=>{b.textContent='Copy Command';b.classList.remove('ok');},2000);
+    toast('✓ Command copied');
+  });
+}
+
+function openConvUrl() {
+  const u=document.getElementById('convUrl').textContent; if(u) window.open(u,'_blank');
+}
+function clearCmd() {
+  document.getElementById('cmdInput').value='';
+  hide('cmdErr'); hide('cmdOut'); clearStatus('cmdStatus');
+}
+
+// ═══════════════════════════════════════════════════════
+// URL CONVERTER (standalone)
+// ═══════════════════════════════════════════════════════
+function convertStandalone() {
+  const raw=document.getElementById('inputUrl').value.trim();
+  hide('convErr'); hide('convSOut');
+  if(!raw){showErr('convErr','Paste a URL first.');return;}
+  if(!raw.startsWith('http')){showErr('convErr','Must start with http(s)://');return;}
+  try{
+    const r=buildUrl(raw);
+    document.getElementById('convSUrl').textContent=r.url;
+    renderDiff(r.changes,'diffItemsS');
+    show('convSOut'); scroll('convSOut');
+  }catch(e){showErr('convErr','Error: '+e.message);}
+}
+function clearConv(){document.getElementById('inputUrl').value='';hide('convErr');hide('convSOut');}
+
+// ═══════════════════════════════════════════════════════
+// PSSH EXTRACTOR (standalone)
+// ═══════════════════════════════════════════════════════
+async function fetchAndExtract(){
+  const url=document.getElementById('fetchUrl').value.trim();
+  hide('fetchErr');hide('psshSOut');clearStatus('fetchStatus');
+  if(!url){showErr('fetchErr','Paste a URL first.');return;}
+  addStatus('fetchStatus','load','⏳ Fetching MPD...');
+  const xml=await fetchMPD(url);
+  if(!xml){clearStatus('fetchStatus');showErr('fetchErr','Could not fetch MPD.');return;}
+  addStatus('fetchStatus','ok','✓ Fetched');
+  renderStandalonePSSH(xml);
+}
+function handleFilePssh(file){
+  if(!file)return;
+  const dz=document.getElementById('dropZonePssh');
+  dz.classList.add('has-file');
+  dz.querySelector('.drop-title').textContent=file.name;
+  dz.querySelector('.drop-sub').textContent=(file.size/1024).toFixed(1)+' KB';
+  const r=new FileReader(); r.onload=e=>renderStandalonePSSH(e.target.result); r.readAsText(file);
+}
+function extractFromText(){
+  hide('psshErr');
+  const text=document.getElementById('psshInput').value.trim();
+  if(!text){showErr('psshErr','Paste XML first.');return;}
+  renderStandalonePSSH(text);
+}
+let _sKids=[];
+function renderStandalonePSSH(xml){
+  hide('psshErr');hide('psshSOut');
+  const parsed=parseMPDForKids(xml);
+  if(!parsed.psshList.length){showErr('psshErr','No Widevine PSSH found.');return;}
+  renderPSSHCards(parsed.psshList,parsed.psshKids,'psshSCards','psshSMeta');
+  _sKids=[...parsed.psshKids];
+  const all=new Set([...parsed.psshKids,...parsed.mpdKids]);
+  document.getElementById('kidCountS').textContent=all.size+' KIDs';
+  let rows='',n=1;
+  all.forEach(hex=>{
+    const uuid=hexToUUID(hex);
+    const inP=parsed.psshKids.has(hex),inM=parsed.mpdKids.has(hex);
+    const cls=(inP&&inM)?'sp-both':inP?'sp-db':'sp-cmd';
+    const lbl=(inP&&inM)?'PSSH+MPD':inP?'PSSH':'MPD';
+    rows+=`<tr><td style="color:var(--muted);font-size:11px">${n++}</td><td class="kid-uuid">${uuid}</td><td style="font-size:10px;color:var(--muted)">${hex}</td><td><span class="src-pill ${cls}">${lbl}</span></td><td><button class="btn-sm" onclick="copyText('${uuid}',this)">Copy</button></td></tr>`;
+  });
+  document.getElementById('kidTableS').innerHTML=rows;
+  show('psshSOut'); scroll('psshSOut');
+}
+function copyAllKidsS(){navigator.clipboard.writeText(_sKids.map(hexToUUID).join('\n')).then(()=>toast('✓ Copied'));}
+function clearFetch(){document.getElementById('fetchUrl').value='';hide('fetchErr');hide('psshSOut');clearStatus('fetchStatus');}
+function clearPaste(){document.getElementById('psshInput').value='';hide('psshErr');hide('psshSOut');}
+
+// ═══════════════════════════════════════════════════════
+// CORE: URL BUILD
+// ═══════════════════════════════════════════════════════
+function buildUrl(original){
+  const changes=[];
+  const mpdQIdx=original.search(/\.mpd\?/);
+  const base=mpdQIdx!==-1?original.slice(0,mpdQIdx+4):original;
+  const qs=mpdQIdx!==-1?original.slice(mpdQIdx+5):'';
+  const oldName=base.match(/\/([^/?]+\.mpd)$/)?.[1];
+  const newBase=base.replace(/\/[^/?]+\.mpd$/,'/main.mpd');
+  if(oldName&&oldName!=='main.mpd') changes.push({type:'changed',label:'Filename',from:oldName,to:'main.mpd'});
+  if(qs){
+    qs.split('&').forEach(pair=>{
+      const eq=pair.indexOf('='); if(eq===-1)return;
+      const key=decodeURIComponent(pair.slice(0,eq));
+      const val=pair.slice(eq+1);
+      if(key==='manifest-params'){
+        let decoded='';
+        try{const parts=decodeURIComponent(val).split('|');decoded=parts.length>=3?decodeURIComponent(parts[2]).replace(/&/g,' · '):decodeURIComponent(val);}catch(e){decoded=val;}
+        changes.push({type:'removed',label:'manifest-params',detail:decoded});
+      }else{
+        let dval=val;try{dval=decodeURIComponent(val);}catch(e){}
+        changes.push({type:'removed',label:key,detail:dval});
+      }
+    });
+  }
+  return{url:newBase,changes};
+}
+
+// ═══════════════════════════════════════════════════════
+// CORE: FETCH MPD
+// ═══════════════════════════════════════════════════════
+async function fetchMPD(url){
+  try{const r=await fetch(url,{signal:AbortSignal.timeout(8000)});if(r.ok)return await r.text();}catch(e){}
+  for(const proxy of CORS_PROXIES){
+    try{const r=await fetch(proxy(url),{signal:AbortSignal.timeout(10000)});if(r.ok)return await r.text();}catch(e){}
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════
+// CORE: PARSE MPD
+// ═══════════════════════════════════════════════════════
+function parseMPDForKids(xml){
+  const doc=new DOMParser().parseFromString(xml,'application/xml');
+  const psshList=new Set(),mpdKids=new Set();
+  doc.querySelectorAll('ContentProtection').forEach(cp=>{
+    const scheme=(cp.getAttribute('schemeIdUri')||'').toLowerCase();
+    const psshEl=cp.querySelector('pssh');
+    if(psshEl){const b64=psshEl.textContent.trim();if(b64&&scheme.includes(WIDEVINE_UUID))psshList.add(b64);}
+  });
+  doc.querySelectorAll('*').forEach(el=>{
+    for(let i=0;i<el.attributes.length;i++){
+      if(el.attributes[i].localName==='default_KID')mpdKids.add(el.attributes[i].value.toLowerCase().replace(/-/g,''));
+    }
+  });
+  const psshKids=new Set();
+  [...psshList].forEach(b64=>decodeWidevineKids(b64).forEach(k=>psshKids.add(k)));
+  return{psshList:[...psshList],psshKids,mpdKids};
+}
+
+// ═══════════════════════════════════════════════════════
+// CORE: DECODE WIDEVINE PROTOBUF
+// ═══════════════════════════════════════════════════════
+function decodeWidevineKids(b64){
+  try{
+    const raw=atob(b64);const bytes=new Uint8Array(raw.length);
+    for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+    let ds=32;
+    const magic=String.fromCharCode(bytes[4],bytes[5],bytes[6],bytes[7]);
+    if(magic!=='pssh'){for(let i=0;i<bytes.length-4;i++){if(bytes[i]===0x70&&bytes[i+1]===0x73&&bytes[i+2]===0x73&&bytes[i+3]===0x68){ds=i+4+4+16+4;break;}}}
+    const data=bytes.slice(ds);const kids=[];let i=0;
+    while(i<data.length){
+      let tag=0,shift=0;do{tag|=(data[i]&0x7F)<<shift;shift+=7;}while(data[i++]&0x80);
+      const wire=tag&0x7,field=tag>>3;
+      if(wire===2){let len=0,ls=0;do{len|=(data[i]&0x7F)<<ls;ls+=7;}while(data[i++]&0x80);const val=data.slice(i,i+len);i+=len;if(field===2&&len===16)kids.push(Array.from(val).map(b=>b.toString(16).padStart(2,'0')).join(''));}
+      else if(wire===0){while(data[i++]&0x80);}
+      else if(wire===1){i+=8;}else if(wire===5){i+=4;}else break;
+    }
+    return kids;
+  }catch(e){return[];}
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER HELPERS
+// ═══════════════════════════════════════════════════════
+function renderPSSHCards(psshList,psshKids,cardsId,metaId){
+  let html='';
+  psshList.forEach((pssh,idx)=>{
+    const id=cardsId+'_'+idx;
+    html+=`<div class="pssh-card"><div class="pssh-head"><span class="pssh-badge">🔑 Widevine${psshList.length>1?' #'+(idx+1):''}</span><button class="btn-sm" onclick="copyText(document.getElementById('${id}').textContent,this)">Copy PSSH</button></div><div class="pssh-val" id="${id}" onclick="copyText(this.textContent,null)" title="Click to copy">${pssh}</div><div class="pssh-meta"><div class="pssh-mi">UUID: <span>${WIDEVINE_UUID}</span></div><div class="pssh-mi">Bytes: <span>${Math.round(atob(pssh).length)}</span></div><div class="pssh-mi">Key IDs: <span>${psshKids.size}</span></div></div></div>`;
+  });
+  document.getElementById(cardsId).innerHTML=html;
+  if(metaId)document.getElementById(metaId).textContent=psshKids.size+' key'+(psshKids.size!==1?'s':'')+' · Widevine';
+}
+
+function renderDiff(changes,elId){
+  document.getElementById(elId).innerHTML=changes.length?changes.map(c=>
+    c.type==='changed'
+      ?`<div class="diff-item diff-chg"><span>↻</span><div><span style="color:var(--muted)">${c.label}:</span> <span style="color:var(--acc2);text-decoration:line-through">${c.from}</span> → <span style="color:var(--acc)">${c.to}</span></div></div>`
+      :`<div class="diff-item diff-rem"><span>−</span><div><span style="color:var(--muted)">Removed <b>${c.label}</b>:</span> <span style="color:var(--muted);font-size:10px">${trunc(c.detail||'',160)}</span></div></div>`
+  ).join(''):'<p style="font-size:11px;color:var(--muted);padding:4px 0">No changes.</p>';
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════
+function hexToUUID(h){return`${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function trunc(s,n){return s.length>n?s.slice(0,n)+'…':s;}
+function copyEl(elId,btnId){
+  const text=document.getElementById(elId).textContent.trim();
+  navigator.clipboard.writeText(text).then(()=>{
+    toast('✓ Copied');
+    if(btnId){const b=document.getElementById(btnId);const o=b.textContent;b.textContent='✓';b.classList.add('ok');setTimeout(()=>{b.textContent=o;b.classList.remove('ok');},1800);}
+  });
+}
+function copyText(text,btn){
+  navigator.clipboard.writeText(text.trim()).then(()=>{
+    toast('✓ Copied');
+    if(btn){const o=btn.textContent;btn.textContent='✓';btn.classList.add('ok');setTimeout(()=>{btn.textContent=o;btn.classList.remove('ok');},1800);}
+  });
+}
+function show(id){document.getElementById(id).classList.add('show');}
+function hide(id){document.getElementById(id).classList.remove('show');}
+function showErr(id,msg){const e=document.getElementById(id);if(e){e.textContent=msg;e.classList.add('show');}}
+function scroll(id){document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'});}
+function addStatus(id,type,msg){
+  const el=document.getElementById(id);
+  const cls={ok:'s-ok',err:'s-err',load:'s-load',info:'s-info'}[type]||'s-info';
+  const icon={ok:'<span class="dot"></span>',load:'<span class="spin">⏳</span>',err:'⚠',info:'ℹ'}[type]||'';
+  el.innerHTML+=`<div class="status-bar ${cls}">${icon} ${msg}</div>`;
+}
+function setStatus(id,type,msg){document.getElementById(id).innerHTML='';addStatus(id,type,msg);}
+function clearStatus(id){document.getElementById(id).innerHTML='';}
+
+// ═══════════════════════════════════════════════════════
+// DRAG & DROP
+// ═══════════════════════════════════════════════════════
+function setupDrop(id,handler){
+  const dz=document.getElementById(id);
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');if(e.dataTransfer.files[0])handler(e.dataTransfer.files[0]);});
+}
+setupDrop('dropZonePssh',handleFilePssh);
+setupDrop('dropZoneKeys',importKeyFile);
+
+function scrollToFinal() {
+  // Show output first, then scroll to the final command card at the bottom
+  setTimeout(() => {
+    const el = document.getElementById('finalCmd');
+    if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 80);
+}
+
+// ═══════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════
+document.getElementById('cmdInput').addEventListener('keydown', e => {
+  // Ctrl+Enter OR plain Enter (when textarea has content and no shift)
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); processCommand(); }
+});
+document.getElementById('inputUrl').addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='Enter')convertStandalone();});
+document.getElementById('psshInput').addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='Enter')extractFromText();});
+document.getElementById('fetchUrl').addEventListener('keydown',e=>{if(e.key==='Enter')fetchAndExtract();});
+
+// ═══════════════════════════════════════════════════════
+// FORMAT TOGGLE  (mkv / mp4, persisted in localStorage)
+// ═══════════════════════════════════════════════════════
+let _userFormat = 'mkv';
+
+function loadFormat() {
+  _userFormat = localStorage.getItem('mpd_fmt') || 'mkv';
+  updateFormatUI();
+}
+
+function updateFormatUI() {
+  document.getElementById('fmtMkv').classList.toggle('active', _userFormat==='mkv');
+  document.getElementById('fmtMp4').classList.toggle('active', _userFormat==='mp4');
+}
+
+function toggleFormat() {
+  _userFormat = _userFormat==='mkv' ? 'mp4' : 'mkv';
+  localStorage.setItem('mpd_fmt', _userFormat);
+  updateFormatUI();
+  // Rebuild command if results are visible
+  if (document.getElementById('cmdOut').classList.contains('show') && _cmdKidRows.length) {
+    const url = document.getElementById('convUrl').textContent;
+    const otherFlags = _lastOtherFlags;
+    buildFinalCmd(url, _cmdKidRows, otherFlags);
+    toast(`✓ Format switched to ${_userFormat.toUpperCase()}`);
+  }
+}
+
+let _lastOtherFlags = '';
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+loadDB();
+loadFormat();
+</script>
+</body>
+</html>
