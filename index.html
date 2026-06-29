@@ -704,7 +704,7 @@ function buildOutput(convertedUrl, cmdKeys, psshKidMap, otherFlags, psshKids=new
   const kidRows = [];
 
   allKids.forEach(kid => {
-    const fromCmd = cmdKeys[kid] || null;
+    const fromCmd = (cmdKeys[kid] && cmdKeys[kid] !== ZEROS32) ? cmdKeys[kid] : null;
     const fromDB  = lookupKey(kid);
     const inPssh  = psshKids.has(kid) || psshKidMap.hasOwnProperty(kid);
 
